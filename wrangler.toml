@@ -12,7 +12,7 @@ run_worker_first = ["/api/*"]
 # 이미 대시보드에서 만든 KV가 있다면 아래 주석을 풀고 id를 넣어주세요.
 [[kv_namespaces]]
 binding = "FOOD_KV"
-# id = "여기에_KV_네임스페이스_ID_입력"
+# id = "65ecb3cba4324190aa126f421da46c11"
 
 # 관리자 비밀번호(ADMIN_PASSWORD)는 보안상 이 파일에 적지 말고
 # Cloudflare 대시보드 > Workers > Settings > Variables and Secrets 에서 Secret으로 추가하세요.
