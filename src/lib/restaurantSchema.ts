@@ -1,19 +1,12 @@
 import { Restaurant, ZONES, ZoneId } from '../types.ts';
 
 export const KV_RESTAURANTS_KEY = 'restaurants_v1';
-export const DEFAULT_ADMIN_PASSWORD = '1234';
 
 const VALID_ZONE_IDS = new Set<string>(ZONES.map((z) => z.id));
 
 /** Check whether a value is one of the 5 supported campus food zones. */
 export function isValidZoneId(value: unknown): value is ZoneId {
   return typeof value === 'string' && VALID_ZONE_IDS.has(value);
-}
-
-/** Resolve the configured admin password with a safe local fallback. */
-export function resolveAdminPassword(configured?: string): string {
-  const trimmed = configured?.trim();
-  return trimmed && trimmed.length > 0 ? trimmed : DEFAULT_ADMIN_PASSWORD;
 }
 
 /** Generate a compact unique ID for a newly created restaurant entry. */

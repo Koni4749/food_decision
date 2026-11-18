@@ -18,7 +18,6 @@ const ALL_ZONE_IDS: ZoneId[] = ZONES.map((z) => z.id);
 
 export default function App() {
   const [restaurants, setRestaurants] = useState<Restaurant[]>(SEED_RESTAURANTS);
-  const [dataSource, setDataSource] = useState<'kv' | 'seed'>('seed');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
@@ -41,7 +40,6 @@ export default function App() {
         const payload = await fetchRestaurants();
         if (!active) return;
         setRestaurants(payload.restaurants);
-        setDataSource(payload.source);
         setGlobalError(null);
       } catch (err) {
         if (!active) return;
@@ -133,7 +131,6 @@ export default function App() {
       try {
         const result = await saveRestaurants(next, adminPassword);
         setRestaurants(result.restaurants);
-        setDataSource(result.source);
         return true;
       } catch (err) {
         if (err instanceof ApiRequestError && err.status === 401) {
@@ -151,33 +148,25 @@ export default function App() {
     [adminPassword],
   );
 
-  const sourceLabel = dataSource === 'kv' ? 'KV 실시간 공유' : '기본 목록';
-
   return (
     <div className="min-h-screen bg-[#F7F8FA] text-[#111827]">
       {/* Compact Header */}
       <header className="border-b border-black/[0.07] bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3.5 sm:px-6">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <span
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#111827] text-white"
-              aria-hidden="true"
-            >
-              <Utensils className="h-4 w-4 text-[#F04438]" />
-            </span>
-            <div className="min-w-0">
-              <h1 className="truncate break-keep text-base font-bold tracking-tight text-[#111827] sm:text-lg">
-                미추홀캠 오늘 뭐 먹지?
-              </h1>
-              <p className="truncate break-keep text-xs text-[#6B7280]">
-                인천대 미추홀캠퍼스 · 송현아 · 트리플스트리트
-              </p>
-            </div>
-          </div>
-
-          <span className="shrink-0 rounded-lg border border-black/[0.08] bg-[#F9FAFB] px-2.5 py-1 text-xs font-medium text-[#4B5563]">
-            {isLoading ? '불러오는 중...' : sourceLabel}
+        <div className="mx-auto flex max-w-6xl items-center gap-2.5 px-4 py-3.5 sm:px-6">
+          <span
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#111827] text-white"
+            aria-hidden="true"
+          >
+            <Utensils className="h-4 w-4 text-[#F04438]" />
           </span>
+          <div className="min-w-0">
+            <h1 className="truncate break-keep text-base font-bold tracking-tight text-[#111827] sm:text-lg">
+              미추홀캠 오늘 뭐 먹지?
+            </h1>
+            <p className="truncate break-keep text-xs text-[#6B7280]">
+              인천대 미추홀캠퍼스 · 송현아 · 트리플스트리트
+            </p>
+          </div>
         </div>
       </header>
 

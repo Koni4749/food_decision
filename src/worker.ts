@@ -2,9 +2,15 @@ import { SEED_RESTAURANTS } from './data/seedRestaurants.ts';
 import {
   KV_RESTAURANTS_KEY,
   jsonResponse,
-  resolveAdminPassword,
   sanitizeRestaurants,
 } from './lib/restaurantSchema.ts';
+
+const FALLBACK_ADMIN_PASSWORD = '1234';
+
+function resolveAdminPassword(configured?: string): string {
+  const trimmed = configured?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : FALLBACK_ADMIN_PASSWORD;
+}
 
 export interface Env {
   ASSETS: Fetcher;

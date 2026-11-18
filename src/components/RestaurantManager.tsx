@@ -1,7 +1,6 @@
 import {
   ArrowRightLeft,
   Check,
-  Lock,
   LockOpen,
   Pencil,
   Plus,
@@ -40,11 +39,12 @@ export function RestaurantManager({
   const [activeTab, setActiveTab] = useState<ZoneTab>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Admin login prompt state
-  const [showAuthBox, setShowAuthBox] = useState(false);
+  // Hidden admin login modal state (opened via Ctrl+Shift+M)
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [authError, setAuthError] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
 
   // Quick-add state
   const [quickZone, setQuickZone] = useState<ZoneId>('michuhol');
@@ -84,6 +84,37 @@ export function RestaurantManager({
     return () => window.clearTimeout(timer);
   }, [feedback]);
 
+  // Open admin password modal via Ctrl+Shift+M (and close on Escape)
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: globalThis.KeyboardEvent) => {
+      if (showAuthModal && e.key === 'Escape') {
+        e.preventDefault();
+        setShowAuthModal(false);
+        setPasswordInput('');
+        setAuthError(null);
+        return;
+      }
+
+      const isShortcut =
+        (e.ctrlKey || e.metaKey) &&
+        e.shiftKey &&
+        !e.altKey &&
+        (e.code === 'KeyM' || e.key.toLowerCase() === 'm');
+
+      if (!isShortcut) return;
+      e.preventDefault();
+
+      if (!isAdmin) {
+        setShowAuthModal(true);
+        setAuthError(null);
+        window.requestAnimationFrame(() => passwordInputRef.current?.focus());
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [isAdmin, showAuthModal]);
+
   const filteredRestaurants = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return restaurants.filter((item) => {
@@ -106,12 +137,13 @@ export function RestaurantManager({
     try {
       const ok = await onUnlockAdmin(passwordInput);
       if (ok) {
-        setShowAuthBox(false);
+        setShowAuthModal(false);
         setPasswordInput('');
         setFeedback({ type: 'ok', text: '관리자 모드가 활성화되었습니다.' });
         window.setTimeout(() => addInputRef.current?.focus(), 60);
       } else {
         setAuthError('비밀번호가 일치하지 않습니다.');
+        passwordInputRef.current?.select();
       }
     } catch {
       setAuthError('인증 확인 중 오류가 발생했습니다.');
@@ -285,99 +317,113 @@ export function RestaurantManager({
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
-          {isAdmin ? (
-            <>
-              <button
-                type="button"
-                disabled={isSaving}
-                onClick={handleResetToSeed}
-                title="코드에 내장된 초기 리스트로 복원"
-                className="inline-flex min-h-[36px] items-center gap-1 rounded-lg border border-black/[0.08] bg-[#F9FAFB] px-2.5 py-1 text-xs font-medium text-[#4B5563] transition-colors hover:bg-[#F3F4F6] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#111827] disabled:opacity-50"
-              >
-                <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
-                <span>초기화</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onLockAdmin();
-                  setSelectedIds(new Set());
-                  setEditingId(null);
-                }}
-                className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg bg-[#111827] px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-[#1F2937] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#111827]"
-              >
-                <LockOpen className="h-3.5 w-3.5 text-[#12B76A]" aria-hidden="true" />
-                <span>관리자 잠금</span>
-              </button>
-            </>
-          ) : (
+        {isAdmin && (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={isSaving}
+              onClick={handleResetToSeed}
+              title="코드에 내장된 초기 리스트로 복원"
+              className="inline-flex min-h-[36px] items-center gap-1 rounded-lg border border-black/[0.08] bg-[#F9FAFB] px-2.5 py-1 text-xs font-medium text-[#4B5563] transition-colors hover:bg-[#F3F4F6] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#111827] disabled:opacity-50"
+            >
+              <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>초기화</span>
+            </button>
             <button
               type="button"
               onClick={() => {
-                setShowAuthBox((v) => !v);
-                setAuthError(null);
+                onLockAdmin();
+                setSelectedIds(new Set());
+                setEditingId(null);
               }}
-              aria-expanded={showAuthBox}
-              className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border border-black/[0.1] bg-white px-3 py-1 text-xs font-semibold text-[#374151] transition-colors hover:bg-[#F9FAFB] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#111827]"
+              className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg bg-[#111827] px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-[#1F2937] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#111827]"
             >
-              <Lock className="h-3.5 w-3.5 text-[#6B7280]" aria-hidden="true" />
-              <span>관리자 모드</span>
+              <LockOpen className="h-3.5 w-3.5 text-[#12B76A]" aria-hidden="true" />
+              <span>잠금</span>
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* Admin Password Login Box */}
-      {!isAdmin && showAuthBox && (
-        <form
-          onSubmit={handleAuthSubmit}
-          className="border-b border-black/[0.07] bg-[#F9FAFB] px-5 py-4"
+      {/* Hidden Admin Password Modal (Ctrl+Shift+M) */}
+      {!isAdmin && showAuthModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="admin-auth-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowAuthModal(false);
+              setPasswordInput('');
+              setAuthError(null);
+            }
+          }}
         >
-          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
+          <form
+            onSubmit={handleAuthSubmit}
+            className="w-full max-w-sm rounded-2xl border border-black/[0.08] bg-white p-5 shadow-lg"
+          >
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h3 id="admin-auth-title" className="text-base font-bold text-[#111827]">
+                관리자 인증
+              </h3>
+              <button
+                type="button"
+                aria-label="닫기"
+                onClick={() => {
+                  setShowAuthModal(false);
+                  setPasswordInput('');
+                  setAuthError(null);
+                }}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#111827]"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
             <label htmlFor="admin-password-input" className="sr-only">
-              관리자 비밀번호
+              비밀번호
             </label>
             <input
+              ref={passwordInputRef}
               id="admin-password-input"
               type="password"
               autoFocus
               value={passwordInput}
               onChange={(e) => setPasswordInput(e.target.value)}
-              placeholder="관리자 비밀번호 입력"
-              className="min-h-[42px] flex-1 rounded-xl border border-black/[0.12] bg-white px-3.5 text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:border-[#111827] focus:outline-none focus:ring-1 focus:ring-[#111827]"
+              placeholder="비밀번호 입력"
+              className="min-h-[44px] w-full rounded-xl border border-black/[0.12] bg-[#F9FAFB] px-3.5 text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:border-[#111827] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#111827]"
             />
-            <div className="flex items-center gap-2">
-              <button
-                type="submit"
-                disabled={isVerifying || !passwordInput.trim()}
-                className="min-h-[42px] flex-1 rounded-xl bg-[#111827] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#1F2937] disabled:bg-[#D1D5DB] disabled:text-[#6B7280] sm:flex-initial"
-              >
-                {isVerifying ? '확인 중...' : '잠금 해제'}
-              </button>
+
+            {authError && (
+              <p className="mt-2 text-xs font-medium text-[#D92D20]" role="alert">
+                {authError}
+              </p>
+            )}
+
+            <div className="mt-4 flex items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={() => {
-                  setShowAuthBox(false);
+                  setShowAuthModal(false);
                   setPasswordInput('');
                   setAuthError(null);
                 }}
-                className="min-h-[42px] rounded-xl border border-black/[0.1] bg-white px-3 text-sm font-medium text-[#4B5563] hover:bg-[#F3F4F6]"
+                className="min-h-[40px] rounded-xl border border-black/[0.1] bg-white px-4 text-sm font-medium text-[#4B5563] hover:bg-[#F3F4F6]"
               >
                 취소
               </button>
+              <button
+                type="submit"
+                disabled={isVerifying || !passwordInput.trim()}
+                className="min-h-[40px] rounded-xl bg-[#111827] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#1F2937] disabled:bg-[#D1D5DB] disabled:text-[#6B7280]"
+              >
+                {isVerifying ? '확인 중...' : '확인'}
+              </button>
             </div>
-          </div>
-          {authError ? (
-            <p className="mt-2 text-xs font-medium text-[#D92D20]" role="alert">
-              {authError}
-            </p>
-          ) : (
-            <p className="mt-2 break-keep text-xs text-[#6B7280]">
-              한 번 해제하면 이 브라우저에 로그인 상태가 유지됩니다. (환경변수 미설정 시 기본값: 1234)
-            </p>
-          )}
-        </form>
+          </form>
+        </div>
       )}
 
       {/* Admin Quick Continuous Add Bar */}
